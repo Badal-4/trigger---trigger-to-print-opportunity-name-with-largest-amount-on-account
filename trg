@@ -1,4 +1,5 @@
-trigger trg3 on Opportunity(after update,after Insert,after Delete)
+//trigger to print opportunity with max amount on parent account object
+trigger trg3 on Opportunity(after Insert,after Update,after Delete)
 {
     Set<Id> accId = new Set<Id>();
     
@@ -6,11 +7,11 @@ trigger trg3 on Opportunity(after update,after Insert,after Delete)
     {
         if(!trigger.new.isEmpty())
         {
-            for(Opportunity o : trigger.new)
+            for(Opportunity op : trigger.new)
             {
-                if(o.AccountId != null)
+                if(op.AccountId != null)
                 {
-                    accId.add(o.AccountId);
+                    accId.add(op.AccountId);
                 }
             }
         }
@@ -20,30 +21,38 @@ trigger trg3 on Opportunity(after update,after Insert,after Delete)
     {
         if(!trigger.old.isEmpty())
         {
-            for(Opportunity o : trigger.old)
+            for(Opportunity op : trigger.old)
             {
-                if(o.AccountId != null)
+                if(op.AccountId != null)
                 {
-                    accId.add(o.AccountId);
+                    accId.add(op.AccountId);
                 }
             }
         }
     }
     
- List<Account> accList = [Select Id,maxOpp__c,(Select Name, Amount from Opportunities where Amount != null order by Amount desc limit 1) from Account 
-                         where Id IN : accId];
+    List<Account> accList = [Select Id,maxOpp__c,(Select Amount,Name from Opportunities where Amount != null
+                                                 order by amount desc limit 1) from Account where Id IN : accId];
+    List<Account> acctList = new List<Account>();
     
- List<Account> acctList = new List<Account>();
+   
+        for(Account acc : accList)
+        {
+            if(!acc.Opportunities.isEmpty())
+            {
+            acc.maxOpp__c = acc.Opportunities[0].Name;
+            acctList.add(acc);
+            }
+            else 
+            {
+                acc.maxOpp__c = '';
+                acctList.add(acc);
+            }
+        }
     
-    for(Account acc : accList)
-    {
-        acc.maxOpp__c = acc.Opportunities[0].Name;
-        acctList.add(acc);
-    }
     
     if(!acctList.isEmpty())
     {
         update acctList;
     }
-  
 }
